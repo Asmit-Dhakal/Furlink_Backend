@@ -1,0 +1,42 @@
+/* Pet admin custom field coloring for status and gender, visible in both light and dark mode */
+.pet-status-select {
+    font-weight: bold;
+}
+.pet-status-select option[value="Active"] {
+    background: #e6ffe6;
+    color: #008000;
+}
+.pet-status-select option[value="CheckedOut"] {
+    background: #fffbe6;
+    color: #b38f00;
+}
+.pet-status-select option[value="Inactive"] {
+    background: #ffe6e6;
+    color: #b30000;
+}
+.pet-gender-select {
+    font-weight: bold;
+}
+.pet-gender-select option[value="Male"] {
+    background: #e6f0ff;
+    color: #00509e;
+}
+.pet-gender-select option[value="Female"] {
+    background: #ffe6f0;
+    color: #a6005a;
+}
+.pet-gender-select option[value="Other"] {
+    background: #f0e6ff;
+    color: #6b21a8;
+}
+/* Ensure all fields are visible and readable in both light and dark mode */
+:root, [data-theme="dark"] {
+    --admin-field-bg: #fff;
+    --admin-field-color: #222;
+}
+[data-theme="dark"] .pet-status-select,
+[data-theme="dark"] .pet-gender-select {
+    background: var(--admin-field-bg) !important;
+    color: var(--admin-field-color) !important;
+}
+
