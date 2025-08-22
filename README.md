@@ -59,19 +59,13 @@ A Django-based backend for a pet hostel management system, supporting user regis
 ## API Endpoints
 
 ### Authentication
-- `POST /api/auth/register/` — Register as pet owner or keeper
-- `POST /api/auth/login/` — Obtain JWT token (username, password)
-- `POST /api/token/refresh/` — Refresh JWT token
+- `POST auth/register/` — Register as pet owner or keeper
+- `POST auth/login/` — Obtain JWT token (username, password)
+
 
 ### Pet Management
-- `GET/POST /api/pet/pets/` — List or create pets
-- `GET/PUT/DELETE /api/pet/pets/<id>/` — Retrieve, update, or delete a pet
-
-## Configuration
-- All main settings are in `Furlink_Backend/settings.py`.
-- JWT settings are under `SIMPLE_JWT`.
-- Custom user model is in `authuser/models.py`.
-- Pet model is in `Pet/models.py`.
+- `GET/POST pet/pets/` — List or create pets
+- `GET/PUT/DELETE pet/pets/<id>/` — Retrieve, update, or delete a pet
 
 ## Notes
 - Media and static files are served in development only.
