@@ -2,7 +2,7 @@
   "version": 2,
   "builds": [
     {
-      "src": "Furlink_Backend/wsgi.py",
+      "src": "api/index.py",
       "use": "@vercel/python",
       "config": {
         "maxLambdaSize": "50mb",
@@ -13,10 +13,11 @@
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "Furlink_Backend/wsgi.py"
+      "dest": "api/index.py"
     }
   ],
   "env": {
     "DJANGO_SETTINGS_MODULE": "Furlink_Backend.settings"
-  }
+  },
+  "buildCommand": "python manage.py collectstatic --noinput"
 }

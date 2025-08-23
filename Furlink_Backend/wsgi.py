@@ -19,6 +19,3 @@ application = get_wsgi_application()
 application = WhiteNoise(application, root=settings.STATIC_ROOT, prefix='/static/')
 
 
-# For Vercel Python serverless compatibility
-app = application
-handler = application
