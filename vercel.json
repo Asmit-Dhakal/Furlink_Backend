@@ -1,24 +1,23 @@
+
 {
   "version": 2,
   "builds": [
     {
       "src": "Furlink_Backend/wsgi.py",
       "use": "@vercel/python",
-      "config": { "maxLambdaSize": "50mb" }
+      "config": {
+        "maxLambdaSize": "50mb",
+        "runtime": "python3.12"
+      }
     }
   ],
   "routes": [
     {
-      "src": "/static/(.*)",
-      "dest": "/static/$1"
-    },
-    {
-      "src": "/media/(.*)",
-      "dest": "/media/$1"
-    },
-    {
       "src": "/(.*)",
-      "dest": "/Furlink_Backend/wsgi.py"
+      "dest": "Furlink_Backend/wsgi.py"
     }
-  ]
+  ],
+  "env": {
+    "DJANGO_SETTINGS_MODULE": "Furlink_Backend.settings"
+  }
 }
