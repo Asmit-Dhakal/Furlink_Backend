@@ -1,0 +1,21 @@
+/* Custom admin field coloring for KYC status and role */
+.kyc-status-select {
+    font-weight: bold;
+}
+.kyc-status-select option[value="VERIFIED"] {
+    background: #e6ffe6;
+    color: #008000;
+}
+.kyc-status-select option[value="REJECTED"] {
+    background: #ffe6e6;
+    color: #b30000;
+}
+.kyc-status-select option[value="PENDING"] {
+    background: #fffbe6;
+    color: #b38f00;
+}
+.role-select {
+    font-weight: bold;
+    background: #e6f0ff;
+}
+
