@@ -24,6 +24,7 @@ urlpatterns = [
     path('pet/', include('Pet.urls')),
     path('gallery/', include('gallery.urls')),
     path('contact/', include('contact.urls')),
+    path('shop/', include('shop.urls')),
 ]
 
 if settings.DEBUG:

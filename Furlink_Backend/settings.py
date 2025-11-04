@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'Pet',
     'gallery',
     'contact',
+    'shop'
 ]
 
 MIDDLEWARE = [

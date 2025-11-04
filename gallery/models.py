@@ -9,3 +9,4 @@ class PetImage(models.Model):
 
 	def __str__(self):
 		return f"{self.breed} - {self.image.name}"
+ 
