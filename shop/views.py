@@ -24,6 +24,6 @@ class CategoryGetViewSet(ProductListRetriveViewSet):
 
 
 class ProductGetViewSet(ProductListRetriveViewSet):
-	queryset = Product.objects.all()
+	queryset = Product.objects.filter(is_available=True)
 	serializer_class = ProductSerializer
 
