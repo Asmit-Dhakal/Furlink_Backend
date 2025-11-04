@@ -22,10 +22,9 @@ class PetSerializer(serializers.ModelSerializer):
             'vaccination_status',
             'photo',
             'admission_date',
-            'status',
             'description',
         ]
-        read_only_fields = ['admission_date', 'owner']
+        read_only_fields = ['admission_date', 'owner', 'is_adopted']
 
     def create(self, validated_data):
         request = self.context.get('request')
