@@ -1,8 +1,9 @@
 from django.urls import path
-from .views import RegisterView, CustomTokenObtainPairView
+from authuser.views import RegisterViewSet, LoginViewSet
+from rest_framework.routers import DefaultRouter
 
-urlpatterns = [
-    path('register/', RegisterView.as_view(), name='register'),
-    path('login/', CustomTokenObtainPairView.as_view(), name='login'),
-]
+router = DefaultRouter()
+router.register('register', RegisterViewSet, basename='register')
+router.register('login', LoginViewSet, basename='login')
 
+urlpatterns = router.urls

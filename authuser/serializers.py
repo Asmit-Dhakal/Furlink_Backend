@@ -1,14 +1,14 @@
 from rest_framework import serializers
 from .models import User
 from django.contrib.auth.password_validation import validate_password
-
+from django.contrib.auth import authenticate
+from rest_framework_simplejwt.tokens import RefreshToken
 class UserRegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
-    role = serializers.ChoiceField(choices=[('PET_OWNER', 'Pet Owner'), ('PET_KEEPER', 'Pet Keeper')], required=True)
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'password', 'role')
+        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'password')
 
     def create(self, validated_data):
         user = User(
@@ -16,9 +16,39 @@ class UserRegisterSerializer(serializers.ModelSerializer):
             email=validated_data.get('email', ''),
             first_name=validated_data.get('first_name', ''),
             last_name=validated_data.get('last_name', ''),
-            role=validated_data['role'],
         )
         user.set_password(validated_data['password'])
         user.save()
         return user
 
+
+class UserLoginSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(required=True)
+    password = serializers.CharField(write_only=True, required=True)
+    class Meta:
+        model = User
+        fields = ['email', 'password']
+
+    def validate(self, data):
+        request = self.context.get('request')
+        email = data.get('email')
+        password = data.get('password')
+
+        try:
+            user_object = User.objects.get(email=email)
+        except User.DoesNotExist:
+            raise serializers.ValidationError("User with this email does not exist.")
+
+        user = authenticate(request, username=user_object.username, password=password)
+        if not user:
+            raise serializers.ValidationError("Invalid email or password")
+        
+        if not user.is_active:
+            raise serializers.ValidationError("User account is disabled.")
+        
+        refresh = RefreshToken.for_user(user)
+
+        return {
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+    } 

@@ -2,18 +2,8 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 class User(AbstractUser):
-    class Roles(models.TextChoices):
-        SUPERUSER = "SUPERUSER", "Superuser"
-        PET_OWNER = "PET_OWNER", "Pet Owner"
-        PET_ADOPTER = "PET_ADOPTER", "Pet Adopter"
-
-    role = models.CharField(
-        max_length=20,
-        choices=Roles.choices,
-        default=Roles.PET_OWNER
-    )
-
     middle_name = models.CharField(max_length=50, blank=True, null=True)
+    email = models.EmailField(unique=True)
     date_of_birth = models.DateField(blank=True, null=True)
     GENDER_CHOICES = [
         ("M", "Male"),
@@ -57,12 +47,3 @@ class User(AbstractUser):
         help_text='Specific permissions for this user.',
         verbose_name='user permissions'
     )
-
-    def is_pet_owner(self):
-        return self.role == self.Roles.PET_OWNER
-
-    def is_pet_adopter(self):
-        return self.role == self.Roles.PET_ADOPTER
-
-    def is_superuser_role(self):
-        return self.role == self.Roles.SUPERUSER

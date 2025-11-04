@@ -1,30 +1,33 @@
+
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from .models import User
 from django.utils.html import format_html
-from django import forms
 
-class UserAdminForm(forms.ModelForm):
+
+class CustomUserCreationForm(UserCreationForm):
+    class Meta:
+        model = User
+        # include commonly edited fields on user creation
+        fields = ('username', 'email', 'first_name', 'middle_name', 'last_name')
+
+
+class CustomUserChangeForm(UserChangeForm):
     class Meta:
         model = User
         fields = '__all__'
-        widgets = {
-            'kyc_status': forms.Select(attrs={'class': 'kyc-status-select'}),
-            'role': forms.Select(attrs={'class': 'role-select'}),
-        }
-    class Media:
-        css = {
-            'all': ('admin/css/custom_admin.css',)
-        }
+
 
 @admin.register(User)
 class CustomUserAdmin(BaseUserAdmin):
-    form = UserAdminForm
+    add_form = CustomUserCreationForm
+    form = CustomUserChangeForm
     list_display = (
-        'username', 'email', 'first_name', 'middle_name', 'last_name', 'role', 'is_active',
+        'username', 'email', 'first_name', 'middle_name', 'last_name', 'is_active',
         'kyc_status', 'kyc_verified_date', 'profile_photo_thumb', 'kyc_doc_front_thumb', 'kyc_doc_back_thumb'
     )
-    list_filter = ('role', 'is_active', 'kyc_status', 'gender', 'province', 'district')
+    list_filter = ('is_active', 'kyc_status', 'gender', 'province', 'district')
     search_fields = ('username', 'email', 'first_name', 'middle_name', 'last_name', 'citizenship_number', 'contact_number')
     readonly_fields = (
         'last_login', 'date_joined', 'kyc_verified_date', 'profile_photo_thumb', 'kyc_doc_front_thumb', 'kyc_doc_back_thumb'
@@ -56,7 +59,7 @@ class CustomUserAdmin(BaseUserAdmin):
             )
         }),
         ('Permissions', {
-            'fields': ('role', 'is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')
+            'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')
         }),
         ('Important dates', {'fields': ('last_login', 'date_joined')})
     )
@@ -64,24 +67,37 @@ class CustomUserAdmin(BaseUserAdmin):
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('username', 'email', 'password1', 'password2', 'role', 'is_active', 'is_staff', 'is_superuser'),
+            'fields': ('username', 'email', 'password1', 'password2', 'is_active', 'is_staff', 'is_superuser'),
         }),
     )
 
     def profile_photo_thumb(self, obj):
-        if obj.profile_photo:
-            return format_html('<img src="{}" width="40" height="40" style="object-fit:cover; border-radius:4px;" />', obj.profile_photo.url)
-        return "-"
+        if obj and getattr(obj, 'profile_photo', None):
+            try:
+                url = obj.profile_photo.url
+            except Exception:
+                return '-'
+            return format_html('<img src="{}" width="40" height="40" style="object-fit:cover; border-radius:4px;" />', url)
+        return '-'
     profile_photo_thumb.short_description = 'Profile Photo'
 
     def kyc_doc_front_thumb(self, obj):
-        if obj.kyc_doc_front:
-            return format_html('<img src="{}" width="40" height="40" style="object-fit:cover; border-radius:4px;" />', obj.kyc_doc_front.url)
-        return "-"
+        if obj and getattr(obj, 'kyc_doc_front', None):
+            try:
+                url = obj.kyc_doc_front.url
+            except Exception:
+                return '-'
+            return format_html('<img src="{}" width="40" height="40" style="object-fit:cover; border-radius:4px;" />', url)
+        return '-'
     kyc_doc_front_thumb.short_description = 'KYC Front'
 
     def kyc_doc_back_thumb(self, obj):
-        if obj.kyc_doc_back:
-            return format_html('<img src="{}" width="40" height="40" style="object-fit:cover; border-radius:4px;" />', obj.kyc_doc_back.url)
-        return "-"
+        if obj and getattr(obj, 'kyc_doc_back', None):
+            try:
+                url = obj.kyc_doc_back.url
+            except Exception:
+                return '-'
+            return format_html('<img src="{}" width="40" height="40" style="object-fit:cover; border-radius:4px;" />', url)
+        return '-'
     kyc_doc_back_thumb.short_description = 'KYC Back'
+
