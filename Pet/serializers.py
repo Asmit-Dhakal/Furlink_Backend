@@ -3,7 +3,6 @@ from .models import Pet
 from authuser.models import User
 
 class PetSerializer(serializers.ModelSerializer):
-    owner = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
     keeper = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(), allow_null=True, required=False)
 
     class Meta:
@@ -26,5 +25,11 @@ class PetSerializer(serializers.ModelSerializer):
             'status',
             'description',
         ]
-        read_only_fields = ['admission_date']
+        read_only_fields = ['admission_date', 'owner']
+
+    def create(self, validated_data):
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        validated_data['owner'] = user
+        return super().create(validated_data)
 
