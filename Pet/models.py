@@ -17,7 +17,6 @@ class Pet(models.Model):
     vaccination_status = models.CharField(max_length=100, blank=True, null=True)
     photo = models.ImageField(upload_to='pet_photos/', blank=True, null=True)
     admission_date = models.DateField(auto_now_add=True)
-    status = models.CharField(max_length=20, choices=[('Active', 'Active'), ('CheckedOut', 'Checked Out'), ('Inactive', 'Inactive')], default='Active')
     description = models.TextField(blank=True, null=True)
     is_adopted = models.BooleanField(default=False)
 
