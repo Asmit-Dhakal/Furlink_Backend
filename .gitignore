@@ -1,6 +1,12 @@
+
+# IDE and workspace files
 /.idea/copilot.data.migration.ask.xml
 /.vscode/launch.json
 /.vscode/settings.json
 /.idea/copilot.data.migration.ask2agent.xml
 /.idea/copilot.data.migration.agent.xml
 /.idea/copilot.data.migration.edit.xml
+
+# Python cache
+__pycache__/
+**/__pycache__/
