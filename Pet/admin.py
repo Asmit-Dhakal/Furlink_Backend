@@ -12,13 +12,12 @@ class CategoryAdmin(admin.ModelAdmin):
 @admin.register(Pet)
 class PetAdmin(admin.ModelAdmin):
 	list_display = (
-		'id', 'name', 'species', 'breed', 'category', 'owner', 'age', 'gender', 'color', 'weight', 'is_deleted', 'adoption_status'
+		'id', 'name', 'species', 'breed', 'category', 'owner', 'age', 'gender', 'color', 'weight', 'adoption_status'
 	)
 	search_fields = ('name', 'breed', 'owner__username')
-	list_filter = ('species', 'breed', 'gender', 'category', 'is_deleted')
+	list_filter = ('species', 'breed', 'gender', 'category')
 	raw_id_fields = ('owner',)
 	readonly_fields = ()
-	actions = ['restore_selected']
 	fieldsets = (
 		(None, {
 			'fields': ('owner', 'name', 'species', 'breed', 'category', 'age', 'gender')
@@ -29,29 +28,19 @@ class PetAdmin(admin.ModelAdmin):
 		('Description', {
 			'fields': ('description',)
 		}),
-		('Status', {
-			'fields': ('is_deleted', 'deleted_at')
-		}),
 	)
 
 	def adoption_status(self, obj):
 		# show adoption status if an Adoption exists
-		adoption = getattr(obj, 'adoptions', None)
-		if adoption:
+		from .models import Adoption as AdoptionModel
+		try:
+			adoption = AdoptionModel.objects.get(pet=obj)
 			status = 'Adopted' if adoption.is_adopted else 'Pending'
 			return format_html('<span>{}</span>', status)
-		return format_html('<span>{}</span>', 'Not Adopted')
+		except AdoptionModel.DoesNotExist:
+			return format_html('<span>{}</span>', 'Not Adopted')
 	adoption_status.short_description = 'Adoption Status'
 
-	def restore_selected(self, request, queryset):
-		# only restore those that are soft-deleted
-		restored = 0
-		for obj in queryset:
-			if getattr(obj, 'is_deleted', False):
-				obj.restore()
-				restored += 1
-		self.message_user(request, f"Restored {restored} pets.")
-	restore_selected.short_description = 'Restore selected deleted pets'
 
 
 @admin.register(Adoption)

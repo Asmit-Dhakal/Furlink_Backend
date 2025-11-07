@@ -26,9 +26,9 @@ class PetSerializer(serializers.ModelSerializer):
         model = Pet
         fields = [
             'id', 'owner', 'name', 'species', 'breed', 'category', 'category_id', 'age', 'gender', 'color', 'weight',
-            'health_issues', 'vaccination_status', 'photo', 'description', 'is_deleted', 'deleted_at'
+            'health_issues', 'vaccination_status', 'photo', 'description'
         ]
-        read_only_fields = ['owner', 'is_deleted', 'deleted_at']
+        read_only_fields = ['owner']
 
     def create(self, validated_data):
         # set owner from request
@@ -50,7 +50,9 @@ class AdoptionSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         pet = attrs.get('pet')
-        if hasattr(pet, 'adoptions') and pet.adoptions is not None:
+        # OneToOne relation; check existence safely
+        from .models import Adoption as AdoptionModel
+        if pet and AdoptionModel.objects.filter(pet=pet).exists():
             raise serializers.ValidationError('This pet already has an adoption record.')
         return attrs
 

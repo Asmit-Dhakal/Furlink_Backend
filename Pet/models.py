@@ -5,14 +5,8 @@ from decimal import Decimal
 from authuser.models import User
 
 
-# Soft-delete manager for Pet: returns only non-deleted pets by default
-class PetManager(models.Manager):
-    def get_queryset(self):
-        return super().get_queryset().filter(is_deleted=False)
-
 
 class Category(models.Model):
-    """Category for pets (e.g., Dog, Cat, Small Breed, Large Breed, Reptile)."""
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True, null=True)
 
@@ -39,26 +33,6 @@ class Pet(models.Model):
     photo = models.ImageField(upload_to='pet_photos/', blank=True, null=True)
     description = models.TextField(blank=True, null=True)
 
-    # soft-delete
-    is_deleted = models.BooleanField(default=False)
-    deleted_at = models.DateTimeField(blank=True, null=True)
-
-    # managers: default hides deleted pets
-    objects = PetManager()
-    all_objects = models.Manager()
-
-    def delete(self, using=None, keep_parents=False):
-        """Soft-delete: mark as deleted and set timestamp."""
-        self.is_deleted = True
-        self.deleted_at = timezone.now()
-        self.save(update_fields=['is_deleted', 'deleted_at'])
-
-    def restore(self):
-        """Restore a previously soft-deleted pet."""
-        self.is_deleted = False
-        self.deleted_at = None
-        self.save(update_fields=['is_deleted', 'deleted_at'])
-
     def __str__(self):
         owner = getattr(self.owner, 'username', None)
         return f"{self.name} ({self.species}) - Owner: {owner}"
@@ -77,11 +51,7 @@ class Adoption(models.Model):
 
 
 class AdoptionPrice(models.Model):
-    """Price configuration for adoptions.
 
-    Can be scoped to a category and optionally to a specific adopter (user-specific price).
-    If `adopter` is null, the price applies to all users for that category.
-    """
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='adoption_prices')
     adopter = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='adoption_prices')
     price = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
