@@ -1,49 +1,69 @@
-from rest_framework import viewsets, permissions
 
+from rest_framework import viewsets, permissions
+from rest_framework.decorators import action
+from rest_framework.response import Response
 from .models import Pet, Adoption, Category, AdoptionPrice
 from .serializers import (
-    PetSerializer, AdoptionSerializer, CategorySerializer, AdoptionPriceSerializer
+    PetSerializer, AdoptionSerializer,
+    CategorySerializer, AdoptionPriceSerializer
 )
 
 
+class CategoryViewSet(viewsets.ModelViewSet):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    permission_classes = [permissions.AllowAny]
+
+
 class PetViewSet(viewsets.ModelViewSet):
-    """CRUD for Pet."""
-    permission_classes = [permissions.IsAuthenticated]
     queryset = Pet.objects.all()
     serializer_class = PetSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
+
+    def perform_update(self, serializer):
+        # Ensure only owner can update
+        pet = self.get_object()
+        if pet.owner != self.request.user:
+            raise permissions.PermissionDenied("You can only update your own pets.")
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        # Ensure only owner can delete
+        if instance.owner != self.request.user:
+            raise permissions.PermissionDenied("You can only delete your own pets.")
+        instance.delete()
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def adopt(self, request, pk=None):
+        """Custom action for adopting a pet"""
+        pet = self.get_object()
+
+        if not pet.is_available_for_adoption:
+            return Response({'error': 'This pet has already been adopted.'}, status=400)
+
+        adoption = Adoption.objects.create(
+            pet=pet,
+            adopter=request.user,
+            is_confirmed=True,
+            price_paid=pet.adoption_price,
+        )
+
+        pet.is_available_for_adoption = False
+        pet.save()
+
+        return Response(AdoptionSerializer(adoption).data, status=201)
 
 
 class AdoptionViewSet(viewsets.ModelViewSet):
-    """Manage adoptions. Only authenticated users can create/update."""
-    permission_classes = [permissions.IsAuthenticated]
     queryset = Adoption.objects.all()
     serializer_class = AdoptionSerializer
-
-
-class CategoryViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
-    queryset = Category.objects.all()
-    serializer_class = CategorySerializer
 
 
 class AdoptionPriceViewSet(viewsets.ModelViewSet):
-    """Manage adoption prices. Support filtering by category and adopter via query params."""
-    permission_classes = [permissions.IsAuthenticated]
     queryset = AdoptionPrice.objects.all()
     serializer_class = AdoptionPriceSerializer
-
-    def get_queryset(self):
-        qs = super().get_queryset()
-        category_id = self.request.query_params.get('category')
-        adopter_id = self.request.query_params.get('adopter')
-        active = self.request.query_params.get('active')
-        if category_id:
-            qs = qs.filter(category_id=category_id)
-        if adopter_id:
-            qs = qs.filter(adopter_id=adopter_id)
-        if active is not None:
-            if active.lower() in ('1', 'true', 'yes'):
-                qs = qs.filter(is_active=True)
-            elif active.lower() in ('0', 'false', 'no'):
-                qs = qs.filter(is_active=False)
-        return qs
+    permission_classes = [permissions.IsAdminUser]
