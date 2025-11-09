@@ -1,14 +1,33 @@
-from django.shortcuts import render
-from rest_framework import generics, status
 from rest_framework.response import Response
+from rest_framework import status
 from .serializers import UserRegisterSerializer
-from rest_framework_simplejwt.views import TokenObtainPairView
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from rest_framework.views import APIView
 from authuser.serializers import UserLoginSerializer
 from rest_framework.viewsets import GenericViewSet
 from rest_framework.mixins import CreateModelMixin
-from rest_framework.decorators import action
+from rest_framework import mixins
+from rest_framework.permissions import IsAuthenticated
+from .serializers import AccountSerializer
+from .models import Account
+
+
+class AccountViewSet(mixins.ListModelMixin,
+                     mixins.UpdateModelMixin,
+                     GenericViewSet):
+    """List the authenticated user's account and allow updates to it.
+
+    This viewset intentionally uses ListModelMixin so that a GET to the
+    list endpoint returns the current user's account (single-item list).
+    Update is allowed via PATCH/PUT on the account instance.
+    """
+    serializer_class = AccountSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Account.objects.filter(user=self.request.user)
+
+    def perform_update(self, serializer):
+        # Ensure user cannot change the owner of the account
+        serializer.save()
 
 class RegisterViewSet(CreateModelMixin,GenericViewSet):
     serializer_class = UserRegisterSerializer

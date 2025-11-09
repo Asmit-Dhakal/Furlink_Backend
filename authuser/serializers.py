@@ -1,8 +1,17 @@
 from rest_framework import serializers
-from .models import User
+from .models import User,Account
 from django.contrib.auth.password_validation import validate_password
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
+
+
+class AccountSerializer(serializers.ModelSerializer):
+    user = serializers.StringRelatedField(read_only=True)
+
+    class Meta:
+        model = Account
+        fields = ('id', 'user', 'balance', 'currency', 'created_at', 'updated_at')
+        read_only_fields = ('id', 'user', 'created_at', 'updated_at')
 class UserRegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
 
