@@ -18,23 +18,16 @@ class CategoryViewSet(viewsets.ModelViewSet):
 class PetViewSet(viewsets.ModelViewSet):
     queryset = Pet.objects.all()
     serializer_class = PetSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    permission_classes = [permissions.IsAuthenticated]
 
-    def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
-
-    def perform_update(self, serializer):
-        # Ensure only owner can update
-        pet = self.get_object()
-        if pet.owner != self.request.user:
-            raise permissions.PermissionDenied("You can only update your own pets.")
-        serializer.save()
-
-    def perform_destroy(self, instance):
-        # Ensure only owner can delete
-        if instance.owner != self.request.user:
-            raise permissions.PermissionDenied("You can only delete your own pets.")
-        instance.delete()
+    def get_queryset(self):
+        queryset =Pet.objects.all()
+        user=self.request.user
+        if user.is_authenticated:
+            queryset=queryset.exclude(owner=user)
+        return queryset
+    
+   
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def adopt(self, request, pk=None):
@@ -67,3 +60,24 @@ class AdoptionPriceViewSet(viewsets.ModelViewSet):
     queryset = AdoptionPrice.objects.all()
     serializer_class = AdoptionPriceSerializer
     permission_classes = [permissions.IsAdminUser]
+
+class MyPetViewSet(viewsets.ModelViewSet):
+    serializer_class = PetSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Pet.objects.filter(owner=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
+
+    def perform_update(self, serializer):
+        pet = self.get_object()
+        if pet.owner != self.request.user:
+            raise permissions.PermissionDenied("You can only update your own pets.")
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        if instance.owner != self.request.user:
+            raise permissions.PermissionDenied("You can only delete your own pets.")
+        instance.delete()
