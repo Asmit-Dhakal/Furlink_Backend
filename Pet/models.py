@@ -32,8 +32,6 @@ class Pet(models.Model):
     photo = models.ImageField(upload_to='pet_photos/', blank=True, null=True)
     description = models.TextField(blank=True, null=True)
     is_available_for_adoption = models.BooleanField(default=True)
-
-    # ✅ Custom adoption price (optional)
     custom_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     currency = models.CharField(max_length=10, default='USD')
 
@@ -72,9 +70,6 @@ class AdoptionPrice(models.Model):
     category = models.ForeignKey(Category, on_delete=models.CASCADE, related_name='adoption_prices')
     price = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
     currency = models.CharField(max_length=10, default='USD')
-    is_active = models.BooleanField(default=True)
-    effective_from = models.DateField(blank=True, null=True)
-    effective_to = models.DateField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -83,11 +78,3 @@ class AdoptionPrice(models.Model):
 
     def __str__(self):
         return f"{self.category.name}: {self.price} {self.currency}"
-
-    def is_current(self):
-        today = timezone.localdate()
-        if self.effective_from and today < self.effective_from:
-            return False
-        if self.effective_to and today > self.effective_to:
-            return False
-        return self.is_active
