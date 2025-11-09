@@ -23,6 +23,15 @@ class PetViewSet(viewsets.ModelViewSet):
     serializer_class = PetSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def perform_create(self, serializer):
+        """Ensure owner is set when creating via the generic Pet endpoint.
+
+        Some clients POST to `/pet/pets/`. The `owner` field is required
+        on the model, so if a request creates a Pet via this viewset we
+        attach the authenticated user as the owner to avoid IntegrityError.
+        """
+        serializer.save(owner=self.request.user)
+
     def get_queryset(self):
         queryset =Pet.objects.all()
         user=self.request.user
