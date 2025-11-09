@@ -1,5 +1,5 @@
 from django.db import models
-from django.utils import timezone
+
 from decimal import Decimal
 from authuser.models import User
 
@@ -33,6 +33,7 @@ class Pet(models.Model):
     description = models.TextField(blank=True, null=True)
     is_available_for_adoption = models.BooleanField(default=True)
     custom_price = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    adoption_days = models.PositiveIntegerField(default=1, help_text='Number of days this pet is listed for adoption')
     currency = models.CharField(max_length=10, default='USD')
 
     def __str__(self):
@@ -41,18 +42,24 @@ class Pet(models.Model):
     @property
     def adoption_price(self):
         """
-        Priority: pet.custom_price → category.active AdoptionPrice → 0.00
+        Priority: pet.custom_price → category AdoptionPrice per-day * adoption_days → 0.00
         """
+        # If a custom total price is set on the pet, use that as the total adoption price
         if self.custom_price is not None:
             return self.custom_price
 
-        today = timezone.localdate()
-        price = (AdoptionPrice.objects
-                 .filter(category=self.category, is_active=True)
-                 .filter(models.Q(effective_from__lte=today) | models.Q(effective_from__isnull=True))
-                 .filter(models.Q(effective_to__gte=today) | models.Q(effective_to__isnull=True))
-                 .first())
-        return price.price if price else Decimal('0.00')
+        # otherwise treat AdoptionPrice.price as a per-day rate and multiply by adoption_days
+        days = int(self.adoption_days) if self.adoption_days and int(self.adoption_days) > 0 else 1
+        price_obj = (AdoptionPrice.objects
+                     .filter(category=self.category)
+                     .order_by('-created_at')
+                     .first())
+        if not price_obj:
+            return Decimal('0.00')
+        try:
+            return (price_obj.price * Decimal(days)).quantize(Decimal('0.01'))
+        except Exception:
+            return Decimal('0.00')
 
 class Adoption(models.Model):
     pet = models.OneToOneField(Pet, on_delete=models.CASCADE, related_name='adoption')

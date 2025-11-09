@@ -1,5 +1,8 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from decimal import Decimal
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 
 class User(AbstractUser):
     middle_name = models.CharField(max_length=50, blank=True, null=True)
@@ -47,3 +50,44 @@ class User(AbstractUser):
         help_text='Specific permissions for this user.',
         verbose_name='user permissions'
     )
+
+
+
+class Account(models.Model):
+    """Account for a user to store balance for adoptions/payments."""
+    user = models.OneToOneField('authuser.User', on_delete=models.CASCADE, related_name='account')
+    balance = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
+    currency = models.CharField(max_length=10, default='USD')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Account'
+        verbose_name_plural = 'Accounts'
+
+    def __str__(self):
+        return f"Account({self.user.username}): {self.balance} {self.currency}"
+
+    def can_charge(self, amount: Decimal) -> bool:
+        return self.balance >= amount
+
+    def charge(self, amount: Decimal):
+        if amount < Decimal('0'):
+            raise ValueError('amount must be non-negative')
+        if not self.can_charge(amount):
+            raise ValueError('insufficient funds')
+        self.balance -= amount
+        self.save(update_fields=['balance', 'updated_at'])
+
+    def topup(self, amount: Decimal):
+        if amount < Decimal('0'):
+            raise ValueError('amount must be non-negative')
+        self.balance += amount
+        self.save(update_fields=['balance', 'updated_at'])
+
+
+# create Account automatically when a User is created
+@receiver(post_save, sender=User)
+def create_user_account(sender, instance, created, **kwargs):
+    if created:
+        Account.objects.get_or_create(user=instance)

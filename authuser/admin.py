@@ -3,6 +3,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from .models import User
+from .models import Account
 from django.utils.html import format_html
 
 
@@ -100,4 +101,11 @@ class CustomUserAdmin(BaseUserAdmin):
             return format_html('<img src="{}" width="40" height="40" style="object-fit:cover; border-radius:4px;" />', url)
         return '-'
     kyc_doc_back_thumb.short_description = 'KYC Back'
+
+
+# register Account for quick admin access
+@admin.register(Account)
+class AccountAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user', 'balance', 'currency', 'updated_at')
+    search_fields = ('user__username', 'user__email')
 

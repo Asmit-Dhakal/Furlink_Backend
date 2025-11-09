@@ -7,6 +7,9 @@ from .serializers import (
     PetSerializer, AdoptionSerializer,
     CategorySerializer, AdoptionPriceSerializer
 )
+from decimal import Decimal
+from rest_framework.exceptions import ValidationError
+ 
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
@@ -26,8 +29,6 @@ class PetViewSet(viewsets.ModelViewSet):
         if user.is_authenticated:
             queryset=queryset.exclude(owner=user)
         return queryset
-    
-   
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def adopt(self, request, pk=None):
@@ -69,12 +70,63 @@ class MyPetViewSet(viewsets.ModelViewSet):
         return Pet.objects.filter(owner=self.request.user)
 
     def perform_create(self, serializer):
+        # If the request supplies a price intent (owner explicitly set custom_price)
+        # or supplies both category and adoption_days (implying a per-day listing),
+        # enforce that the owner's account balance can cover the sum of:
+        #   (all already-listed available pets' adoption_price) + (this new pet's price)
+        custom_price = serializer.validated_data.get('custom_price')
+        category = serializer.validated_data.get('category')
+        days_provided = 'adoption_days' in serializer.validated_data
+        days = int(serializer.validated_data.get('adoption_days', 1) or 1)
+
+        intent_to_list = False
+        new_pet_price = Decimal('0.00')
+
+        if custom_price is not None:
+            intent_to_list = True
+            new_pet_price = Decimal(custom_price)
+        elif category is not None and days_provided:
+            intent_to_list = True
+            price_obj = AdoptionPrice.objects.filter(category=category).order_by('-created_at').first()
+            if price_obj:
+                new_pet_price = (price_obj.price * Decimal(days)).quantize(Decimal('0.01'))
+
+        if intent_to_list:
+            account = getattr(self.request.user, 'account', None)
+            # sum existing available pets' adoption_price
+            existing_pets = Pet.objects.filter(owner=self.request.user, is_available_for_adoption=True)
+            existing_sum = sum((p.adoption_price for p in existing_pets), Decimal('0.00'))
+            required = (existing_sum + new_pet_price).quantize(Decimal('0.01'))
+            if not account or not account.can_charge(required):
+                raise ValidationError({
+                    'detail': f'Insufficient account balance to list pet(s) for adoption. Required: {required} {serializer.validated_data.get("currency", "USD")}'
+                })
+
         serializer.save(owner=self.request.user)
 
     def perform_update(self, serializer):
         pet = self.get_object()
         if pet.owner != self.request.user:
             raise permissions.PermissionDenied("You can only update your own pets.")
+        # If toggling to available for adoption, ensure owner has sufficient balance
+        will_be_available = serializer.validated_data.get('is_available_for_adoption', pet.is_available_for_adoption)
+        if not pet.is_available_for_adoption and will_be_available:
+            # compute total price using validated data or existing values
+            custom_price = serializer.validated_data.get('custom_price', pet.custom_price)
+            days = int(serializer.validated_data.get('adoption_days', pet.adoption_days) or 1)
+            category = serializer.validated_data.get('category', pet.category)
+
+            if custom_price is not None:
+                total = Decimal(custom_price)
+            else:
+                price_obj = (AdoptionPrice.objects.filter(category=category).order_by('-created_at').first()
+                             if category else None)
+                total = Decimal('0.00') if not price_obj else (price_obj.price * Decimal(days)).quantize(Decimal('0.01'))
+
+            account = getattr(self.request.user, 'account', None)
+            if not account or not account.can_charge(total):
+                raise ValidationError({'detail': f'Insufficient account balance to list pet for adoption. Required: {total} {serializer.validated_data.get("currency", pet.currency)}'})
+
         serializer.save()
 
     def perform_destroy(self, instance):
