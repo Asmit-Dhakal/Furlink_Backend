@@ -10,15 +10,7 @@ from .serializers import AccountSerializer
 from .models import Account
 
 
-class AccountViewSet(mixins.ListModelMixin,
-                     mixins.UpdateModelMixin,
-                     GenericViewSet):
-    """List the authenticated user's account and allow updates to it.
-
-    This viewset intentionally uses ListModelMixin so that a GET to the
-    list endpoint returns the current user's account (single-item list).
-    Update is allowed via PATCH/PUT on the account instance.
-    """
+class AccountViewSet(mixins.ListModelMixin,GenericViewSet):
     serializer_class = AccountSerializer
     permission_classes = [IsAuthenticated]
 
@@ -26,13 +18,10 @@ class AccountViewSet(mixins.ListModelMixin,
         return Account.objects.filter(user=self.request.user)
 
     def perform_update(self, serializer):
-        # Ensure user cannot change the owner of the account
         serializer.save()
 
 class RegisterViewSet(CreateModelMixin,GenericViewSet):
     serializer_class = UserRegisterSerializer
-
-
 
 class LoginViewSet(GenericViewSet, CreateModelMixin):
     serializer_class = UserLoginSerializer  # default
