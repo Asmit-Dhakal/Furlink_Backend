@@ -28,13 +28,30 @@ class InitiateEsewaPaymentAPIView(APIView):
 		success_url = data.get('success_url') or getattr(settings, 'ESEWA_SUCCESS_URL', 'http://localhost:8009/payment/success/')
 		failure_url = data.get('failure_url') or getattr(settings, 'ESEWA_FAILURE_URL', 'http://localhost:8009/payment/failure/')
 
-		transaction = Transaction.objects.create(
-			user=request.user,
-			tx_uuid=tx_uuid,
-			amount=amount,
-			currency=data.get('currency', 'NPR'),
-			status=Transaction.STATUS_PENDING,
-		)
+		transaction_defaults = {
+			'user': request.user,
+			'amount': amount,
+			'currency': data.get('currency', 'NPR'),
+			'status': Transaction.STATUS_PENDING,
+		}
+
+		transaction, created = Transaction.objects.get_or_create(tx_uuid=tx_uuid, defaults=transaction_defaults)
+		# if transaction already existed, ensure we attach user/amount when appropriate
+		if not created:
+			updated = False
+			if (not transaction.user) and request.user:
+				transaction.user = request.user
+				updated = True
+			# if incoming amount differs and stored amount is zero (e.g., callback-created placeholder), update it
+			try:
+				if (not transaction.amount or Decimal(transaction.amount) == Decimal('0')) and Decimal(amount) > Decimal('0'):
+					transaction.amount = amount
+					updated = True
+			except Exception:
+				# be conservative if parsing fails
+				pass
+			if updated:
+				transaction.save()
 
 		payment = EsewaPayment(
 			product_code=product_code,

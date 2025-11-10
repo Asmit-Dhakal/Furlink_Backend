@@ -14,4 +14,4 @@ class InitiatePaymentSerializer(serializers.Serializer):
 class TransactionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transaction
-    fields = ['id', 'tx_uuid', 'amount', 'currency', 'status', 'signature', 'raw_response', 'created_at']
+        fields = ['id', 'tx_uuid', 'amount', 'currency', 'status', 'signature', 'raw_response', 'created_at']
