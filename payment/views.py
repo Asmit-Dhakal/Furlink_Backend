@@ -114,7 +114,14 @@ class EsewaCallbackAPIView(APIView):
 				tx.status = Transaction.STATUS_FAILED
 
 		# If transaction just moved to completed, credit the user's account
-		if tx.status == Transaction.STATUS_COMPLETED and previous_status != Transaction.STATUS_COMPLETED:
+		# Only credit if transaction moved to completed, hasn't been credited before,
+		# and the transaction has an associated user (the initiator).
+		if (
+			tx.status == Transaction.STATUS_COMPLETED
+			and previous_status != Transaction.STATUS_COMPLETED
+			and not getattr(tx, 'credited', False)
+			and tx.user
+		):
 			# find amount to credit: prefer stored tx.amount, else try payload fields
 			amount_to_credit = None
 			if getattr(tx, 'amount', None) and Decimal(tx.amount) > Decimal('0'):
@@ -130,12 +137,15 @@ class EsewaCallbackAPIView(APIView):
 						except (InvalidOperation, TypeError, ValueError):
 							continue
 
-			if amount_to_credit and tx.user:
+			if amount_to_credit:
 				account = getattr(tx.user, 'account', None)
 				if account:
 					try:
 						account.topup(amount_to_credit)
 						tx.raw_response = {**(tx.raw_response or {}), 'credited_amount': str(amount_to_credit)}
+						tx.credited = True
+						tx.save(update_fields=['raw_response', 'credited', 'updated_at'])
+						# already saved; skip the later save()
 					except Exception as exc:
 						# attach error to raw_response for debugging
 						tx.raw_response = {**(tx.raw_response or {}), 'credit_error': str(exc)}

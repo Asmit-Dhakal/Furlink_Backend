@@ -28,6 +28,8 @@ class Transaction(models.Model):
 	raw_response = models.JSONField(null=True, blank=True)
 	created_at = models.DateTimeField(default=timezone.now)
 	updated_at = models.DateTimeField(auto_now=True)
+	# Whether this transaction amount has already been credited to the user's account.
+	credited = models.BooleanField(default=False)
 
 	def __str__(self):
 		return f"Transaction {self.tx_uuid} ({self.status})"

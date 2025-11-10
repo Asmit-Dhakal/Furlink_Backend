@@ -9,6 +9,7 @@ from .serializers import (
 )
 from decimal import Decimal
 from rest_framework.exceptions import ValidationError
+from django.db import transaction
  
 
 
@@ -41,15 +42,53 @@ class PetViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gene
         if not pet.is_available_for_adoption:
             return Response({'error': 'This pet has already been adopted.'}, status=400)
 
-        adoption = Adoption.objects.create(
-            pet=pet,
-            adopter=request.user,
-            is_confirmed=True,
-            price_paid=pet.adoption_price,
-        )
+        # Determine price: if a custom_price is set and adoption_days > 1,
+        # treat custom_price as a per-day value and multiply by days per request.
+        days = int(pet.adoption_days or 1)
+        if pet.custom_price is not None and days > 1:
+            price = (Decimal(pet.custom_price) * Decimal(days)).quantize(Decimal('0.01'))
+        else:
+            # fallback to the model's adoption_price property (which handles other cases)
+            price = pet.adoption_price
 
-        pet.is_available_for_adoption = False
-        pet.save()
+        # Prevent owner from adopting their own pet
+        if pet.owner == request.user:
+            return Response({'error': 'You cannot adopt your own pet.'}, status=400)
+
+        adopter_account = getattr(request.user, 'account', None)
+        owner_account = getattr(pet.owner, 'account', None)
+
+        if not adopter_account:
+            return Response({'error': 'Adopter has no account.'}, status=400)
+        if not owner_account:
+            return Response({'error': 'Owner has no account to receive funds.'}, status=400)
+
+        # Now transfer from owner -> adopter as requested: owner pays the adopter
+        try:
+            if not owner_account.can_charge(Decimal(price)):
+                return Response({'error': 'Owner has insufficient funds to pay the adopter.'}, status=400)
+        except Exception:
+            return Response({'error': 'Unable to verify owner account balance.'}, status=400)
+
+        # Perform the transfer and create adoption in an atomic transaction
+        try:
+            with transaction.atomic():
+                # charge owner and credit adopter
+                owner_account.charge(Decimal(price))
+                adopter_account.topup(Decimal(price))
+
+                adoption = Adoption.objects.create(
+                    pet=pet,
+                    adopter=request.user,
+                    is_confirmed=True,
+                    price_paid=price,
+                )
+
+                pet.is_available_for_adoption = False
+                pet.save()
+
+        except Exception as exc:
+            return Response({'error': f'Payment transfer failed: {str(exc)}'}, status=500)
 
         return Response(AdoptionSerializer(adoption).data, status=201)
 
@@ -73,10 +112,6 @@ class MyPetViewSet(viewsets.ModelViewSet):
         return Pet.objects.filter(owner=self.request.user)
 
     def perform_create(self, serializer):
-        # If the request supplies a price intent (owner explicitly set custom_price)
-        # or supplies both category and adoption_days (implying a per-day listing),
-        # enforce that the owner's account balance can cover the sum of:
-        #   (all already-listed available pets' adoption_price) + (this new pet's price)
         custom_price = serializer.validated_data.get('custom_price')
         category = serializer.validated_data.get('category')
         days_provided = 'adoption_days' in serializer.validated_data
