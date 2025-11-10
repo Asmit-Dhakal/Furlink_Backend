@@ -47,7 +47,8 @@ INSTALLED_APPS = [
     'Pet',
     'gallery',
     'contact',
-    'shop'
+    'shop',
+    'payment',
 ]
 
 MIDDLEWARE = [
@@ -218,3 +219,6 @@ SIMPLE_JWT = {
     "SLIDING_TOKEN_OBTAIN_SERIALIZER": "rest_framework_simplejwt.serializers.TokenObtainSlidingSerializer",
     "SLIDING_TOKEN_REFRESH_SERIALIZER": "rest_framework_simplejwt.serializers.TokenRefreshSlidingSerializer",
 }
+
+
+ESEWA_SECRET_KEY="8gBm/:&EnhH.1/q"
