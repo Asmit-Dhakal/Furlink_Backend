@@ -1,5 +1,5 @@
 
-from rest_framework import viewsets, permissions
+from rest_framework import viewsets, permissions, mixins
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from .models import Pet, Adoption, Category, AdoptionPrice
@@ -18,18 +18,13 @@ class CategoryViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.AllowAny]
 
 
-class PetViewSet(viewsets.ModelViewSet):
+class PetViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     queryset = Pet.objects.all()
     serializer_class = PetSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):
-        """Ensure owner is set when creating via the generic Pet endpoint.
-
-        Some clients POST to `/pet/pets/`. The `owner` field is required
-        on the model, so if a request creates a Pet via this viewset we
-        attach the authenticated user as the owner to avoid IntegrityError.
-        """
+ 
         serializer.save(owner=self.request.user)
 
     def get_queryset(self):
@@ -41,7 +36,6 @@ class PetViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
     def adopt(self, request, pk=None):
-        """Custom action for adopting a pet"""
         pet = self.get_object()
 
         if not pet.is_available_for_adoption:
@@ -100,7 +94,7 @@ class MyPetViewSet(viewsets.ModelViewSet):
             if price_obj:
                 new_pet_price = (price_obj.price * Decimal(days)).quantize(Decimal('0.01'))
 
-        if intent_to_list:
+        if intent_to_list: 
             account = getattr(self.request.user, 'account', None)
             # sum existing available pets' adoption_price
             existing_pets = Pet.objects.filter(owner=self.request.user, is_available_for_adoption=True)
