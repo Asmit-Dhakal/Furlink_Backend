@@ -25,8 +25,8 @@ class InitiateEsewaPaymentAPIView(APIView):
 		amount = data['amount']
 		product_code = data.get('product_code', 'EPAYTEST')
 		tx_uuid = data.get('transaction_uuid') or str(uuid.uuid4())
-		success_url = data.get('success_url') or getattr(settings, 'ESEWA_SUCCESS_URL', 'http://localhost:8009/payment/success/')
-		failure_url = data.get('failure_url') or getattr(settings, 'ESEWA_FAILURE_URL', 'http://localhost:8009/payment/failure/')
+		success_url = data.get('success_url') or getattr(settings, 'ESEWA_SUCCESS_URL', '`https://furlink-backend.vercel.app/payment/success/')
+		failure_url = data.get('failure_url') or getattr(settings, 'ESEWA_FAILURE_URL', 'https://furlink-backend.vercel.app/payment/failure/')
 
 		transaction_defaults = {
 			'user': request.user,

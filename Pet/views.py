@@ -42,16 +42,12 @@ class PetViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gene
         if not pet.is_available_for_adoption:
             return Response({'error': 'This pet has already been adopted.'}, status=400)
 
-        # Determine price: if a custom_price is set and adoption_days > 1,
-        # treat custom_price as a per-day value and multiply by days per request.
         days = int(pet.adoption_days or 1)
         if pet.custom_price is not None and days > 1:
             price = (Decimal(pet.custom_price) * Decimal(days)).quantize(Decimal('0.01'))
         else:
-            # fallback to the model's adoption_price property (which handles other cases)
             price = pet.adoption_price
 
-        # Prevent owner from adopting their own pet
         if pet.owner == request.user:
             return Response({'error': 'You cannot adopt your own pet.'}, status=400)
 
@@ -63,14 +59,12 @@ class PetViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gene
         if not owner_account:
             return Response({'error': 'Owner has no account to receive funds.'}, status=400)
 
-        # Now transfer from owner -> adopter as requested: owner pays the adopter
         try:
             if not owner_account.can_charge(Decimal(price)):
                 return Response({'error': 'Owner has insufficient funds to pay the adopter.'}, status=400)
         except Exception:
             return Response({'error': 'Unable to verify owner account balance.'}, status=400)
 
-        # Perform the transfer and create adoption in an atomic transaction
         try:
             with transaction.atomic():
                 # charge owner and credit adopter
@@ -146,10 +140,8 @@ class MyPetViewSet(viewsets.ModelViewSet):
         pet = self.get_object()
         if pet.owner != self.request.user:
             raise permissions.PermissionDenied("You can only update your own pets.")
-        # If toggling to available for adoption, ensure owner has sufficient balance
         will_be_available = serializer.validated_data.get('is_available_for_adoption', pet.is_available_for_adoption)
         if not pet.is_available_for_adoption and will_be_available:
-            # compute total price using validated data or existing values
             custom_price = serializer.validated_data.get('custom_price', pet.custom_price)
             days = int(serializer.validated_data.get('adoption_days', pet.adoption_days) or 1)
             category = serializer.validated_data.get('category', pet.category)
