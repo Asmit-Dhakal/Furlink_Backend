@@ -55,7 +55,6 @@ class Order(models.Model):
 	]
 
 	user = models.ForeignKey(getattr(settings, 'AUTH_USER_MODEL', 'auth.User'), on_delete=models.CASCADE, related_name='orders')
-	transaction = models.ForeignKey('payment.Transaction', on_delete=models.SET_NULL, null=True, blank=True, related_name='orders')
 	total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal('0.00'))
 	currency = models.CharField(max_length=10, default='USD')
 	status = models.CharField(max_length=16, choices=STATUS_CHOICES, default=STATUS_PENDING)

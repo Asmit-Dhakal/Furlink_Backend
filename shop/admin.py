@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Category, Product
+from .models import Category, Product, Order, OrderItem, ShopPayment
 from django.utils.html import format_html
 
 
@@ -22,3 +22,8 @@ class ProductAdmin(admin.ModelAdmin):
 			return format_html('<img src="{}" width="50" height="50" style="object-fit:cover;" />', obj.image.url)
 		return '-'
 	image_thumb.short_description = 'Image'
+
+admin.site.register(Order)
+
+admin.site.register(OrderItem)
+admin.site.register(ShopPayment)
