@@ -1,9 +1,10 @@
 from rest_framework import viewsets, permissions, status,mixins
 from rest_framework.response import Response
-from rest_framework.decorators import action
+from rest_framework.generics import ListAPIView
 from django.db import transaction
 from .models import Category, Product, Order, OrderItem
-from .serializers import CategorySerializer, ProductSerializer, OrderSerializer, OrderItemSerializer
+from .serializers import CategorySerializer, ProductSerializer, OrderSerializer, OrderItemSerializer, CompletedOrderSerializer
+# Note: ListAPIView was previously used for a standalone completed-orders view; not needed now.
 
 class ProductListRetriveViewSet(mixins.ListModelMixin,mixins.RetrieveModelMixin,viewsets.GenericViewSet):
 	pass
@@ -75,4 +76,18 @@ class OrderViewSet(viewsets.ModelViewSet):
 
         serializer = OrderSerializer(order)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    # completed orders listing has been moved to a separate view class `CompletedOrderListView`
+
+
+class CompletedOrderListView(ListAPIView):
+    serializer_class = CompletedOrderSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = Order.objects.filter(status=Order.STATUS_PAID)
+        if user.is_staff:
+            return qs
+        return qs.filter(user=user)
 

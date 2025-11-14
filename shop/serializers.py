@@ -1,5 +1,7 @@
 from rest_framework import serializers
 from .models import Category, Product, Order, OrderItem, ShopPayment
+from decimal import Decimal
+from django.db.models import Sum
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -55,4 +57,16 @@ class ShopTransactionSerializer(serializers.ModelSerializer):
         model = ShopPayment
         fields = ['id', 'order_id', 'user', 'tx_uuid', 'amount', 'currency', 'description', 'created_at']
         read_only_fields = ['tx_uuid', 'created_at']
+
+
+class CompletedOrderSerializer(serializers.ModelSerializer):
+   
+    items = OrderItemSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Order
+        fields = ['id', 'user', 'total_amount', 'currency', 'status', 'items', 'created_at']
+
+
+
 
