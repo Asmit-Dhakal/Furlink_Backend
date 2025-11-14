@@ -75,3 +75,4 @@ class OrderViewSet(viewsets.ModelViewSet):
 
         serializer = OrderSerializer(order)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+

@@ -1,6 +1,5 @@
 from rest_framework import serializers
-from .models import Category, Product, Order, OrderItem
-from .models import ShopPayment
+from .models import Category, Product, Order, OrderItem, ShopPayment
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -48,11 +47,12 @@ class OrderSerializer(serializers.ModelSerializer):
         return data
 
 
-class ShopPaymentSerializer(serializers.ModelSerializer):
+# Simple transaction serializer for account-based payments
+class ShopTransactionSerializer(serializers.ModelSerializer):
     order_id = serializers.PrimaryKeyRelatedField(source='order', read_only=True)
 
     class Meta:
         model = ShopPayment
-        fields = ['id', 'order_id', 'user', 'tx_uuid', 'amount', 'currency', 'status', 'signature', 'raw_response', 'credited', 'created_at']
-        read_only_fields = ['tx_uuid', 'status', 'signature', 'raw_response', 'credited', 'created_at']
+        fields = ['id', 'order_id', 'user', 'tx_uuid', 'amount', 'currency', 'description', 'created_at']
+        read_only_fields = ['tx_uuid', 'created_at']
 

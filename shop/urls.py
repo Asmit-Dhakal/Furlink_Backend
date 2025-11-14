@@ -1,7 +1,7 @@
 from rest_framework.routers import DefaultRouter
 from django.urls import path, include
 from .views import CategoryGetViewSet, ProductGetViewSet, OrderViewSet
-from .payment_views import InitiateShopPaymentAPIView, ShopPaymentCallbackAPIView
+from .payment_views import PayWithAccountAPIView
 
 router = DefaultRouter()
 router.register(r'categories', CategoryGetViewSet, basename='category')
@@ -10,6 +10,5 @@ router.register(r'orders', OrderViewSet, basename='order')
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('payments/initiate/', InitiateShopPaymentAPIView.as_view(), name='shop-payment-initiate'),
-    path('payments/callback/', ShopPaymentCallbackAPIView.as_view(), name='shop-payment-callback'),
+    path('payments/pay_with_account/', PayWithAccountAPIView.as_view(), name='shop-pay-with-account'),
 ]
